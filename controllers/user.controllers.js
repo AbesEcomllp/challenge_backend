@@ -1,97 +1,99 @@
-import User from "../Models/User.model.js"
-import  asyncHandler  from "../utils/asyncHandler.utils.js"
-import { sendToken } from "../utils/sendToken.utils.js";
+import User from "../Models/User.model.js";
+import asyncHandler from "../utils/asyncHandler.utils.js";
+import errorHandler from "../middlewares/errorHandler.js";
+import crypto from "crypto";
+import {paymentHandler} from "../utils/payments.cjs";
+
 
 
 export const registerUser = asyncHandler(async (req, res, next) => {
-    const { name, email,phone, password, pincode, address, city, state } = req.body;
-    
-    // Validate required fields
-    if (!name || !email || !password) {
-        return next(new Error("Please provide name, email, and password"));
-    }
+  const { name, email, phone, pincode, address, city, state } = req.body;
 
-    // Check if the user already exists
-    let user = await User.findOne({ email });
-    if (user) {
-        return next(new Error("User already exists"));
-    }
+  if (!name || !email) {
+    return next(errorHandler({ message: "Please enter all required fields", statusCode: 400 }));
+  }
 
-    // Function to generate referral code
-    const generateRandomCode = (length) => {
-        const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
-        return Array.from({ length }, () => 
-            characters.charAt(Math.floor(Math.random() * characters.length))
-        ).join("");
-    };
+  let user = await User.findOne({ email });
+  if (user && user.paymentStatus === "Success") {
+    return next(errorHandler({ message: "User already exists", statusCode: 400 }));
+  }
 
-    const referralCode = generateRandomCode(6);
+  const generateRandomCode = (length) => {
+    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890";
+    return Array.from({ length }, () => characters.charAt(Math.floor(Math.random() * characters.length))).join("");
+  };
 
-    // Create new user
-   
-    try {
-         user = await User.create({
-        name, email, password, phone, referralCode, pincode, address, city, state
+  const order_id = generateRandomCode(10);
+  const amount = 1499;
+  const payResponse = await paymentHandler(amount, order_id, email.split("@")[0], phone);
+
+  if (!payResponse.payment_session_id) {
+    return res.status(201).json({ success: false, message: "Order could not be placed." });
+  }
+  // Create user and set paymentStatus as "Pending"
+  try {
+    user = await User.create({
+      name,
+      email,
+      phone,
+      pincode,
+      address,
+      city,
+      state,
+      order_id
     });
-        sendToken(res, user, "User registered successfully", 201);
-    } catch (error) {
-        if (error.name === "ValidationError") {
-            return res.status(400).json({ success: false, message: error.message });
-        }
-        next(error);
-    }
 
-    // Send authentication token
-    sendToken(res, user, "User registered successfully", 201);
+
+    res.status(201).json({
+      success: true,
+      sessionId: payResponse.payment_session_id,
+      message: "SessionId sent successfully",
+      order_id: payResponse.order_id,
+    });
+  } catch (error) {
+    return res.status(201).json({ success: false, message: `user could not be created because (${error})` });
+  }
 });
+export const verifyPaymentandRegister = asyncHandler(async(req, res, next)=>{
 
-export const LoginUser = asyncHandler(async (req, res, next) => {
-    const { email, password } = req.body;
+// Webhook endpoint
+  try {
+    // Verify the webhook signature
+    const secret = process.env.WEBHOOK_SECRET; // Get this from Cashfree dashboard
+    const receivedSignature = req.headers["x-webhook-signature"];
+    const generatedSignature = crypto
+      .createHmac("sha256", secret)
+      .update(JSON.stringify(req.body))
+      .digest("hex");
 
-    // Validate request fields
-    if (!email || !password) {
-        return next(new Error("Please provide email and password"));
+    if (receivedSignature !== generatedSignature) {
+      return res.status(403).json({ success: false, message: "Invalid signature" });
     }
 
-    // Find user and include password in the selection
-    const user = await User.findOne({ email }).select("+password");
+    const { orderId, status } = req.body; // Extract payment details
+
+    if (!orderId || !status) {
+      return res.status(400).json({ success: false, message: "Invalid data" });
+    }
+
+    // Find the user linked to this order
+    const user = await User.findOne({ order_id: orderId });
     if (!user) {
-        return next(new Error("User does not exist"));
+      return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // Compare passwords
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-        return next(new Error("Invalid credentials"));
+    // Update payment status
+    if (status === "PAYMENT_SUCCESS") {
+      user.paymentStatus = "Success";
+    } else if (status === "PAYMENT_FAILED") {
+      user.paymentStatus = "Failed";
     }
 
-    // Send authentication token
-    sendToken(res, user, "Welcome back user", 201);
+    await user.save();
+
+    res.status(200).json({ success: true, message: "Payment status updated" });
+  } catch (error) {
+    console.error("Webhook processing error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
 });
-export const LogoutUser = asyncHandler(async (req, res, next) => {
-    res.status(200)
-        .cookie("token", "", {
-            expires: new Date(0), // Ensures the cookie is removed effectively
-            httpOnly: true,       // Improves security by restricting client-side access
-            secure: process.env.NODE_ENV === "production", // Enforces HTTPS in production
-            sameSite: true,    // Prevents CSRF attacks
-        })
-        .json({
-            message: "User logged out successfully",
-            success: true
-        });
-});
-
-
-
-export const GetUserProfile = asyncHandler(async (req, res, next) => {
-    const user = await User.findById(req.user._id).select("-password")
-    res.status(200)
-    .json({
-        user,
-        success: true,
-    })
-    })
-    
-    
-    

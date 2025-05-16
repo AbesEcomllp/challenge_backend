@@ -51,7 +51,11 @@ phone: {
      order_id:{
         type: String,
     },
-  
+   paymentStatus:{
+        type: String,
+        enum: ["Pending", "Success", "Failed"],
+        default: "Pending",
+    },
 
     
 

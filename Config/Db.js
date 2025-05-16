@@ -2,8 +2,9 @@ import mongoose from "mongoose";
 
 
 const ConnectDB = async () => {
+  const uri =process.env.MONGODB_URI;
   try {
-    await mongoose.connect(process.env.MONGODB_URI, {dbName:"ECOM_main"});
+    await mongoose.connect(uri, {dbName:"ECOM_main"});
 
     console.log("✅ MongoDB connected successfully");
   } catch (error) {
