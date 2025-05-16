@@ -24,7 +24,7 @@ export const registerUser = asyncHandler(async (req, res, next) => {
   };
 
   const order_id = generateRandomCode(10);
-  const amount = 1499;
+  const amount = 1;
   const payResponse = await paymentHandler(amount, order_id, email.split("@")[0], phone);
 
   if (!payResponse.payment_session_id) {
