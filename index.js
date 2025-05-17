@@ -35,7 +35,9 @@ app.use((req, res, next) => {
 app.options("*", (req, res) => {
     res.status(200).end();
 });
-
+app.get("/favicon.ico", (req, res) => {
+    res.status(204).end(); // Respond with no content to prevent processing
+});
 app.use(express.json())
 app.use(express.urlencoded({extended:true}))
 app.use(cookieParser())
