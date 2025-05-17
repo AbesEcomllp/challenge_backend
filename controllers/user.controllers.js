@@ -8,7 +8,7 @@ import {paymentHandler} from "../utils/payments.cjs";
 
 export const registerUser = asyncHandler(async (req, res, next) => {
   const { name, email, phone, pincode, address, city, state } = req.body;
-
+  console.log(req.body)
   if (!name || !email) {
     return next(errorHandler({ message: "Please enter all required fields", statusCode: 400 }));
   }
@@ -42,7 +42,7 @@ export const registerUser = asyncHandler(async (req, res, next) => {
       state,
       order_id
     });
-
+console.log(payResponse.payment_session_id)
 
     res.status(201).json({
       success: true,
