@@ -21,12 +21,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // ✅ Handle preflight requests explicitly
-app.options("*", (req, res) => {
-    res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, x-webhook-signature");
-    res.status(200).end();
-});
+
 
 // ✅ Parse incoming JSON requests
 app.use(express.json({ limit: "16kb" }));
@@ -34,10 +29,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // ✅ Log incoming requests for debugging
-app.use((req, res, next) => {
-    console.log("Incoming request headers:", req.headers);
-    next();
-});
+
 
 // ✅ Routes
 app.use("/api/user", users);
