@@ -18,7 +18,7 @@ const corsOptions = {
     methods: ['GET', 'POST', 'PUT'], // Allowed HTTP methods
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "x-webhook-signature"],
  // Allowed headers
-    credentials: true // Allow cookies/auth headers
+    
 };
 
 
