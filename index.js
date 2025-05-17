@@ -14,9 +14,9 @@ const app = express();
 export default app;
 
 const corsOptions = {
-    origin: ["http://localhost:5173", "https://himalixir.com"], // Allowed origins
+    origin: ["http://localhost:5173", "https://himalixir.com", "*"], // Allowed origins
     methods: ['GET', 'POST', 'PUT'], // Allowed HTTP methods
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "x-webhook-signature"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "x-webhook-signature", "*"],
  // Allowed headers
     
 };
