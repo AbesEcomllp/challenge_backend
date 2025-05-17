@@ -14,15 +14,27 @@ const app = express();
 
 
 const corsOptions = {
-    origin: ["http://localhost:5173", "https://himalixir.com"], // Allowed origins
-    methods: ['GET', 'POST', 'PUT'], // Allowed HTTP methods
+    origin: ["http://localhost:5173", "https://himalixir.com"], // Explicitly set allowed origins
+    methods: ["GET", "POST", "PUT", "OPTIONS"], // Correctly define allowed methods
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "x-webhook-signature"],
- // Allowed headers
-    credentials: true // Allow cookies/auth headers
+    credentials: true, // Allow cookies/auth headers
 };
 
-
+// Apply CORS
 app.use(cors(corsOptions));
+
+// Explicitly set headers for all responses
+app.use((req, res, next) => {
+    res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, x-webhook-signature");
+    next();
+});
+
+// Handle preflight (OPTIONS) requests separately
+app.options("*", (req, res) => {
+    res.status(200).end();
+});
 
 app.use(express.json({limit:"16kb"}))
 app.use(express.urlencoded({extended:true}))
