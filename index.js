@@ -20,8 +20,6 @@ const corsOptions = {
 // Apply CORS
 app.use(cors(corsOptions));
 
-// Handle preflight requests
-app.options( cors(corsOptions));
 
 // Handle favicon requests
 app.get("/favicon.ico", (req, res) => res.status(204).end());
