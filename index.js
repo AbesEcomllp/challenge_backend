@@ -11,9 +11,9 @@ const app = express();
 
 // ✅ Improved CORS configuration
 const corsOptions = {
-    origin: ["http://localhost:5173", "https://himalixir.com"], // ✅ Remove wildcard `*`
-    methods: ["GET", "POST", "PUT", "OPTIONS"], // ✅ Explicitly defined methods
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "x-webhook-signature"],
+    origin: ["*"], // ✅ Remove wildcard `*`
+    methods: ["*"], // ✅ Explicitly defined methods
+    allowedHeaders: ["*"],
     credentials: true, // ✅ Required for authentication headers
 };
 
