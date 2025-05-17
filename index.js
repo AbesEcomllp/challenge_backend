@@ -1,50 +1,43 @@
-import express from "express"
-import cors from "cors"
-import dotenv from "dotenv"
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
 import users from "./routes/user.routes.js";
-import  errorHandler  from "./middlewares/errorHandler.js";
+import errorHandler from "./middlewares/errorHandler.js";
 import cookieParser from "cookie-parser";
-
-
 
 dotenv.config();
 
 const app = express();
 
-
-
+const allowedOrigins = ["http://localhost:5173", "https://himalixir.com"];
 const corsOptions = {
-    origin: ["http://localhost:5173", "https://himalixir.com"], // Explicitly set allowed origins
-    methods: ["GET", "POST", "PUT", "OPTIONS"], // Correctly define allowed methods
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "PUT", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "x-webhook-signature"],
-    credentials: true, // Allow cookies/auth headers
+    credentials: true,
 };
 
 // Apply CORS
 app.use(cors(corsOptions));
 
-// Explicitly set headers for all responses
-app.use((req, res, next) => {
-    res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, x-webhook-signature");
-    next();
+// Handle preflight requests
+app.options("*", cors(corsOptions));
+
+// Handle favicon requests
+app.get("/favicon.ico", (req, res) => res.status(204).end());
+
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
+// Routes
+app.use("/api/user", users);
+app.get("/", (req, res) => {
+    res.send("API running");
 });
 
-// Handle preflight (OPTIONS) requests separately
-app.options("*", (req, res) => {
-    res.status(200).end();
-});
-app.get("/favicon.ico", (req, res) => {
-    res.status(204).end(); // Respond with no content to prevent processing
-});
-app.use(express.json())
-app.use(express.urlencoded({extended:true}))
-app.use(cookieParser())
-app.use(errorHandler)
-app.use("/api/user", users)
-app.get("/", (req,res)=>{
-    res.send("api runnning")
-})
+// Error Handler (last middleware)
+app.use(errorHandler);
+
 export default app;
-
