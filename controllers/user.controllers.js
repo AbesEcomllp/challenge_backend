@@ -24,7 +24,7 @@ export const registerUser = asyncHandler(async (req, res, next) => {
 
   const order_id = generateRandomCode(10);
 
-  const payResponse = await paymentHandler(entryFee, order_id, email.split("@")[0], phone);
+  const payResponse = await paymentHandler(1, order_id, email.split("@")[0], phone);
 
   if (!payResponse.payment_session_id) {
     return res.status(400).json({ success: false, message: "Order could not be placed." });
