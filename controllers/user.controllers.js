@@ -2,14 +2,13 @@ import User from "../Models/User.model.js";
 import asyncHandler from "../utils/asyncHandler.utils.js";
 import errorHandler from "../middlewares/errorHandler.js";
 import crypto from "crypto";
-import {paymentHandler} from "../utils/payments.cjs";
-
-
+import { paymentHandler } from "../utils/payments.cjs";
 
 export const registerUser = asyncHandler(async (req, res, next) => {
   const { name, email, phone, pincode, address, city, state, entryFee } = req.body;
-  console.log(req.body)
-  if (!name || !email) {
+  console.log(req.body);
+
+  if (!name || !email || !phone || !pincode || !address || !city || !state || !entryFee) {
     return next(errorHandler({ message: "Please enter all required fields", statusCode: 400 }));
   }
 
@@ -22,15 +21,15 @@ export const registerUser = asyncHandler(async (req, res, next) => {
     const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890";
     return Array.from({ length }, () => characters.charAt(Math.floor(Math.random() * characters.length))).join("");
   };
-  
+
   const order_id = generateRandomCode(10);
-  
+
   const payResponse = await paymentHandler(entryFee, order_id, email.split("@")[0], phone);
 
   if (!payResponse.payment_session_id) {
-    return res.status(201).json({ success: false, message: "Order could not be placed." });
+    return res.status(400).json({ success: false, message: "Order could not be placed." });
   }
-  // Create user and set paymentStatus as "Pending"
+
   try {
     user = await User.create({
       name,
@@ -40,9 +39,9 @@ export const registerUser = asyncHandler(async (req, res, next) => {
       address,
       city,
       state,
-      order_id
+      order_id,
+      paymentStatus: "Pending",
     });
-console.log(payResponse.payment_session_id)
 
     res.status(201).json({
       success: true,
@@ -51,42 +50,56 @@ console.log(payResponse.payment_session_id)
       order_id: payResponse.order_id,
     });
   } catch (error) {
-    return res.status(201).json({ success: false, message: `user could not be created because (${error})` });
+    console.error("User creation error:", error);
+    return res.status(400).json({ success: false, message: `User could not be created: ${error.message}` });
   }
 });
-export const verifyPaymentandRegister = asyncHandler(async(req, res, next)=>{
 
-// Webhook endpoint
+export const verifyPaymentandRegister = asyncHandler(async (req, res, next) => {
   try {
-    // Verify the webhook signature
-    const secret = process.env.WEBHOOK_SECRET; // Get this from Cashfree dashboard
+    // Verify webhook signature
+    const secret = process.env.CASHFREE_WEBHOOK_SECRET;
     const receivedSignature = req.headers["x-webhook-signature"];
-   
 
-    const { orderId, status } = req.body; // Extract payment details
-
-    if (!orderId || !status) {
-      return res.status(400).json({ success: false, message: "Invalid data" });
+    if (!receivedSignature) {
+      return res.status(401).json({ success: false, message: "Missing webhook signature" });
     }
 
-    // Find the user linked to this order
-    const user = await User.findOne({ order_id: orderId });
+    const rawBody = JSON.stringify(req.body);
+    const computedSignature = crypto.createHmac("sha256", secret).update(rawBody).digest("base64");
+
+    if (computedSignature !== receivedSignature) {
+      return res.status(401).json({ success: false, message: "Invalid webhook signature" });
+    }
+
+    // Extract payment details (Cashfree webhook payload)
+    const { order_id, order_status, transaction_id } = req.body.data.order; // Adjust based on Cashfree payload
+
+    if (!order_id || !order_status) {
+      return res.status(400).json({ success: false, message: "Invalid webhook data" });
+    }
+
+    // Find user by order_id
+    const user = await User.findOne({ order_id });
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
     // Update payment status
-    if (status === "PAYMENT_SUCCESS") {
+    if (order_status === "PAID") {
       user.paymentStatus = "Success";
-    } else if (status === "PAYMENT_FAILED") {
+      user.transactionId = transaction_id;
+    } else if (order_status === "FAILED" || order_status === "USER_DROPPED") {
       user.paymentStatus = "Failed";
+    } else {
+      user.paymentStatus = "Pending";
     }
 
     await user.save();
 
-    res.status(200).json({ success: true, message: "Payment status updated" });
+    return res.status(200).json({ success: true, message: "Payment status updated" });
   } catch (error) {
     console.error("Webhook processing error:", error);
-    res.status(500).json({ success: false, message: "Server error" });
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 });

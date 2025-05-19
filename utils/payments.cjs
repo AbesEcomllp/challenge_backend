@@ -23,7 +23,10 @@ const secret =process.env.CLIENT_SECRET_KEY;
           customer_id: cust_id,
           customer_phone: phone
       }
-    })
+    }),
+    order_meta: {
+        notify_url: "https://challenge-backend-tau.vercel.app/api/user/webhook/payment-status",
+      },
   };
   
   try {
