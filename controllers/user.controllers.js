@@ -2,8 +2,9 @@ import User from "../Models/User.model.js";
 import asyncHandler from "../utils/asyncHandler.utils.js";
 import errorHandler from "../middlewares/errorHandler.js";
 import crypto from "crypto";
+import {sendToken} from "../utils/sendToken.utils.js";
 import { paymentHandler } from "../utils/payments.cjs";
-
+import Admin from "../Models/Admin.model.js";
 export const registerUser = asyncHandler(async (req, res, next) => {
   const { name, email, phone, pincode, address, city, state, entryFee } = req.body;
   console.log(req.body);
@@ -24,7 +25,7 @@ export const registerUser = asyncHandler(async (req, res, next) => {
 
   const order_id = generateRandomCode(10);
 
-  const payResponse = await paymentHandler(1, order_id, email.split("@")[0], phone);
+  const payResponse = await paymentHandler(entryFee, order_id, email.split("@")[0], phone);
 
   if (!payResponse.payment_session_id) {
     return res.status(400).json({ success: false, message: "Order could not be placed." });
@@ -103,3 +104,87 @@ export const verifyPaymentandRegister = asyncHandler(async (req, res, next) => {
     return res.status(500).json({ success: false, message: "Server error" });
   }
 });
+
+
+
+
+export const registerAdmin = asyncHandler(async (req, res, next) => {
+    const { name, email, password} = req.body;
+    
+    // Validate required fields
+    if (!name || !email || !password) {
+        return next(new Error("Please provide name, email, and password"));
+    }
+
+    // Check if the user already exists
+    let user = await Admin.findOne({ email });
+    if (user) {
+        return next(new Error("User already exists"));
+    }
+
+   
+    // Create new user
+   
+    try {
+         user = await Admin.create({
+        name, email, password
+    });
+    } catch (error) {
+        if (error.name === "ValidationError") {
+            return res.status(400).json({ success: false, message: error.message });
+        }
+        next(error);
+    }
+
+    // Send authentication token
+    sendToken(res, user, "User registered successfully", 201);
+});
+
+
+export const LoginUser = asyncHandler(async (req, res, next) => {
+    const { email, password } = req.body;
+
+    // Validate request fields
+    if (!email || !password) {
+        return next(new Error("Please provide email and password"));
+    }
+
+    // Find user and include password in the selection
+    const user = await Admin.findOne({ email }).select("+password");
+    if (!user) {
+        return next(new Error("User does not exist"));
+    }
+
+    // Compare passwords
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+        return next(new Error("Invalid credentials"));
+    }
+
+    // Send authentication token
+    sendToken(res, user, "Welcome back user", 201);
+});
+export const LogoutUser = asyncHandler(async (req, res, next) => {
+    res.status(200)
+        .cookie("token", "", {
+            expires: new Date(0), // Ensures the cookie is removed effectively
+            httpOnly: true,       // Improves security by restricting client-side access
+            secure: process.env.NODE_ENV === "production", // Enforces HTTPS in production
+            sameSite: true,    // Prevents CSRF attacks
+        })
+        .json({
+            message: "User logged out successfully",
+            success: true
+        });
+});
+export const GetAllUsers = asyncHandler(async (req, res, next) => {
+    const users = await User.find();
+    if (!users) {
+        return next(new Error("No users found"));
+    }
+    res.status(200).json({
+      success:true,
+      users
+    })
+});
+
