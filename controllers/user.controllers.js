@@ -61,14 +61,7 @@ export const verifyPaymentandRegister = asyncHandler(async(req, res, next)=>{
     // Verify the webhook signature
     const secret = process.env.WEBHOOK_SECRET; // Get this from Cashfree dashboard
     const receivedSignature = req.headers["x-webhook-signature"];
-    const generatedSignature = crypto
-      .createHmac("sha256", secret)
-      .update(JSON.stringify(req.body))
-      .digest("hex");
-
-    if (receivedSignature !== generatedSignature) {
-      return res.status(403).json({ success: false, message: "Invalid signature" });
-    }
+   
 
     const { orderId, status } = req.body; // Extract payment details
 
