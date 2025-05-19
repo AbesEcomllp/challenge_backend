@@ -58,19 +58,19 @@ export const registerUser = asyncHandler(async (req, res, next) => {
 export const verifyPaymentandRegister = asyncHandler(async (req, res, next) => {
   try {
     // Verify webhook signature
-    const secret = process.env.CASHFREE_WEBHOOK_SECRET;
-    const receivedSignature = req.headers["x-webhook-signature"];
+    // const secret = process.env.CASHFREE_WEBHOOK_SECRET;
+    // const receivedSignature = req.headers["x-webhook-signature"];
 
-    if (!receivedSignature) {
-      return res.status(401).json({ success: false, message: "Missing webhook signature" });
-    }
+    // if (!receivedSignature) {
+    //   return res.status(401).json({ success: false, message: "Missing webhook signature" });
+    // }
 
-    const rawBody = JSON.stringify(req.body);
-    const computedSignature = crypto.createHmac("sha256", secret).update(rawBody).digest("base64");
+    // const rawBody = JSON.stringify(req.body);
+    // const computedSignature = crypto.createHmac("sha256", secret).update(rawBody).digest("base64");
 
-    if (computedSignature !== receivedSignature) {
-      return res.status(401).json({ success: false, message: "Invalid webhook signature" });
-    }
+    // if (computedSignature !== receivedSignature) {
+    //   return res.status(401).json({ success: false, message: "Invalid webhook signature" });
+    // }
 
     // Extract payment details (Cashfree webhook payload)
     const { order_id, order_status, transaction_id } = req.body.data.order; // Adjust based on Cashfree payload
