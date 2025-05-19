@@ -9,7 +9,7 @@ dotenv.config();
 
 const app = express();
 
-const allowedOrigins = ["http://localhost:5173", "https://himalixir.com"];
+const allowedOrigins = ["http://localhost:5173", "https://himalixir.com", "https://www.himalixir.com"];
 const corsOptions = {
     origin: allowedOrigins,
     methods: ["GET", "POST", "PUT", "OPTIONS"],
