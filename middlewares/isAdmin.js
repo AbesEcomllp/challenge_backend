@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken"
 import asyncHandler from "../utils/asyncHandler.utils.js"
-import User from "../Models/User.model.js"
+import User from "../Models/Admin.model.js"
 export const isAdmin = asyncHandler(async (req, res, next) => {
     const { token } = req.cookies;
 
