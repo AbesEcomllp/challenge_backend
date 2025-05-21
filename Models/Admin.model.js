@@ -21,6 +21,7 @@ const AdminSchema = new Schema(
         type:String,
         enum:["admin", "user"],
         default: "admin",
+        required: true,
     },
   },
   { collection: "Main", timestamps: true }
